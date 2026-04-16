@@ -120,6 +120,23 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
     return true;
 }
 
+/**
+ * Write JSON-escaped *src* into [dst, dst_end). Escapes '"' and '\'.
+ * Returns pointer past the last written byte (null terminator position).
+ */
+static char* json_escape_into(char* dst, const char* dst_end, const char* src) {
+    if(!dst || !src) return dst;
+    while(*src && dst + 1 < dst_end) {
+        if(*src == '"' || *src == '\\') {
+            if(dst + 2 >= dst_end) break;
+            *dst++ = '\\';
+        }
+        *dst++ = *src++;
+    }
+    if(dst < dst_end) *dst = '\0';
+    return dst;
+}
+
 static int build_simple(char* buf, int buf_size, const char* type) {
     if(!buf || buf_size <= 0 || !type) return 0;
     return snprintf(buf, buf_size, "{\"v\":1,\"t\":\"%s\",\"d\":{}}\n", type);
@@ -128,18 +145,40 @@ static int build_simple(char* buf, int buf_size, const char* type) {
 int protocol_build_hello(char* buf, int buf_size) {
     if(!buf || buf_size <= 0) return 0;
     const char* pet = furi_hal_version_get_name_ptr();
-    return snprintf(
-        buf, buf_size,
-        "{\"v\":1,\"t\":\"hello\",\"d\":{\"fw\":\"0.1.0\",\"bt\":\"%s\"}}\n",
-        pet ? pet : "");
+    const char* name = pet ? pet : "";
+    const char prefix[] = "{\"v\":1,\"t\":\"hello\",\"d\":{\"fw\":\"0.1.0\",\"bt\":\"";
+    const char suffix[] = "\"}}\n";
+    char* p = buf;
+    char* end = buf + buf_size;
+    int pfx_len = strlen(prefix);
+    if(p + pfx_len >= end) return 0;
+    memcpy(p, prefix, pfx_len);
+    p += pfx_len;
+    p = json_escape_into(p, end, name);
+    int sfx_len = strlen(suffix);
+    if(p + sfx_len >= end) return 0;
+    memcpy(p, suffix, sfx_len);
+    p += sfx_len;
+    return (int)(p - buf);
 }
 
 int protocol_build_cmd(char* buf, int buf_size, const char* text) {
     if(!buf || buf_size <= 0) return 0;
-    return snprintf(
-        buf, buf_size,
-        "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"%s\"}}\n",
-        text ? text : "");
+    const char* src = text ? text : "";
+    const char prefix[] = "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"";
+    const char suffix[] = "\"}}\n";
+    char* p = buf;
+    char* end = buf + buf_size;
+    int pfx_len = strlen(prefix);
+    if(p + pfx_len >= end) return 0;
+    memcpy(p, prefix, pfx_len);
+    p += pfx_len;
+    p = json_escape_into(p, end, src);
+    int sfx_len = strlen(suffix);
+    if(p + sfx_len >= end) return 0;
+    memcpy(p, suffix, sfx_len);
+    p += sfx_len;
+    return (int)(p - buf);
 }
 
 int protocol_build_enter(char* buf, int buf_size) {
