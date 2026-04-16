@@ -26,6 +26,9 @@ jobs:
       - name: Build FAP
         run: cd flipper-app && ufbt build
 
+      - name: Run protocol C tests
+        run: cd flipper-app/tests && make
+
       - name: Upload FAP artifact
         uses: actions/upload-artifact@v4
         with:
