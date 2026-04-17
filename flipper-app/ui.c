@@ -464,18 +464,28 @@ static void status_draw(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, HDR_H, 127, HDR_H);
 
     // ── Content area ──
-    // Claude character (left, vertically centered)
-    draw_claude(canvas, 4, 22, m->pose, m->anim_frame);
-
-    // Status text (right of character)
     const char* main_text = m->connected ? "Ready" : "No connection";
     if(m->text[0] != '\0') main_text = m->text;
     bool has_sub = m->subtext[0] != '\0';
     bool show_hint = !has_sub && m->connected && m->text[0] == '\0';
+    int text_y = (has_sub || show_hint) ? 25 : 31;
 
+    // Main text — drawn before character so character overdraws any scroll overflow
+    // on the left side (text area starts at x=45, character occupies x=0..40).
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, 77, (has_sub || show_hint) ? 25 : 31, AlignCenter, AlignCenter, main_text);
+    int text_w = (int)canvas_string_width(canvas, main_text);
+    if(text_w <= 82) {
+        canvas_draw_str_aligned(canvas, 77, text_y, AlignCenter, AlignCenter, main_text);
+    } else {
+        // Marquee: scroll left, gap of 20px before looping
+        int scroll_px = (m->anim_frame / 2) % (text_w + 20);
+        canvas_draw_str_aligned(
+            canvas, 45 - scroll_px, text_y, AlignLeft, AlignCenter, main_text);
+    }
+
+    // Claude character — drawn after text so it covers scroll overflow
+    draw_claude(canvas, 4, 22, m->pose, m->anim_frame);
+
     if(has_sub) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 77, 37, AlignCenter, AlignCenter, m->subtext);
