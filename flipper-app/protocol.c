@@ -159,6 +159,7 @@ int protocol_build_hello(char* buf, int buf_size) {
     if(p + sfx_len >= end) return 0;
     memcpy(p, suffix, sfx_len);
     p += sfx_len;
+    if(p < end) *p = '\0';
     return (int)(p - buf);
 }
 
@@ -178,6 +179,7 @@ int protocol_build_cmd(char* buf, int buf_size, const char* text) {
     if(p + sfx_len >= end) return 0;
     memcpy(p, suffix, sfx_len);
     p += sfx_len;
+    if(p < end) *p = '\0';
     return (int)(p - buf);
 }
 
