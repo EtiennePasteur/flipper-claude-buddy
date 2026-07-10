@@ -1961,7 +1961,7 @@ void ui_set_claude_connected(UiState* ui, bool connected) {
     StatusModel* m = view_get_model(ui->status_view);
     m->claude_connected = connected;
     if(!connected) {
-        m->rssi_bars = 0; // 清零信号格
+        m->rssi_bars = 0; // clear signal bars
     }
     view_commit_model(ui->status_view, true);
 }

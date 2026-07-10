@@ -39,7 +39,10 @@ provide Claude-style `userConfig` options:
 export FLIPPER_TRANSPORT=auto     # auto, usb, or ble
 export FLIPPER_SERIAL_PORT=       # optional explicit USB serial port
 export FLIPPER_BT_NAME=Flipper    # optional BLE name fallback
+export FLIPPER_HOST_TYPE=codex    # sent to Flipper in state messages (default: codex)
 ```
+
+The Flipper status header shows **Codex** when this bridge is connected.
 
 The plugin stores its virtual environment and detected Bluetooth name under
 `PLUGIN_DATA`. Its runtime socket is `/tmp/codex-flipper-bridge.sock`.

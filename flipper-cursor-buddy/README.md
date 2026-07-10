@@ -36,7 +36,10 @@ in Cursor and confirm the hooks are loaded, then start a new agent session.
 export FLIPPER_TRANSPORT=auto     # auto, usb, or ble
 export FLIPPER_SERIAL_PORT=       # optional explicit USB serial port
 export FLIPPER_BT_NAME=Flipper    # optional BLE name fallback
+export FLIPPER_HOST_TYPE=cursor   # sent to Flipper in state messages (default: cursor)
 ```
+
+The Flipper status header shows **Cursor** when this bridge is connected.
 
 The plugin stores its virtual environment and detected Bluetooth name under
 `PLUGIN_DATA` (default `/tmp/flipper-cursor-buddy`). Its runtime socket is

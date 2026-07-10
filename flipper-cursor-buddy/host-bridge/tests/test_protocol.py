@@ -35,7 +35,7 @@ class TestEncode:
         assert msg["d"] == {}
 
     def test_no_spaces_in_json(self):
-        # separators=(",", ":") — нет пробелов, экономим байты
+        # separators=(",", ":") — no spaces, saves bytes on the wire
         raw = protocol.encode("ping").rstrip(b"\n")
         assert b" " not in raw
 
@@ -73,11 +73,11 @@ class TestDecode:
     def test_concatenated_messages(self):
         line = (
             b'>: {"v":1,"t":"ping","d":{}}'
-            b'{"v":1,"t":"hello","d":{"fw":"0.1.0","bt":"Osumar4"}}\n'
+            b'{"v":1,"t":"hello","d":{"fw":"0.1.0","bt":"Flipper"}}\n'
         )
         msgs = protocol.decode_all(line)
         assert [m["t"] for m in msgs] == ["ping", "hello"]
-        assert msgs[1]["d"]["bt"] == "Osumar4"
+        assert msgs[1]["d"]["bt"] == "Flipper"
 
 
 # ---------------------------------------------------------------------------

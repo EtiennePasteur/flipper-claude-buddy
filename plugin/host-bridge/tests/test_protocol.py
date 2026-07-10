@@ -35,7 +35,7 @@ class TestEncode:
         assert msg["d"] == {}
 
     def test_no_spaces_in_json(self):
-        # separators=(",", ":") — нет пробелов, экономим байты
+        # separators=(",", ":") — no spaces, saves bytes on the wire
         raw = protocol.encode("ping").rstrip(b"\n")
         assert b" " not in raw
 
