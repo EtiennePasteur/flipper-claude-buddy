@@ -208,6 +208,14 @@ static SoundType sound_from_string(const char* name) {
     return SoundAlert;
 }
 
+static uint8_t host_from_string(const char* name) {
+    if(!name || !name[0]) return HostTypeUnknown;
+    if(strcmp(name, "codex") == 0) return HostTypeCodex;
+    if(strcmp(name, "cursor") == 0) return HostTypeCursor;
+    if(strcmp(name, "claude") == 0) return HostTypeClaude;
+    return HostTypeUnknown;
+}
+
 /* ── Serial RX (worker thread) ────────────────────────────────── */
 
 /* Translate a parsed Anthropic message into the existing ProtocolMessage
@@ -473,6 +481,9 @@ static void process_message(App* app, ProtocolMessage* msg) {
 
     case MsgTypeState:
         ui_set_claude_connected(app->ui, msg->claude_connected);
+        if(msg->has_host) {
+            ui_set_host_type(app->ui, host_from_string(msg->host_name));
+        }
         break;
 
     case MsgTypeUsage: {

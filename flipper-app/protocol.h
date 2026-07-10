@@ -40,6 +40,8 @@ typedef struct {
     char text2[PROTOCOL_MAX_FIELD_LEN];  // line2 (subtext)
     char menu_data[PROTOCOL_MAX_MSG_LEN]; // pipe-delimited menu items
     bool claude_connected; // claude code session state
+    bool has_host;
+    char host_name[8];     // "claude", "codex", "cursor" (from state message)
     bool has_rssi;
     int16_t rssi;
     /* Anthropic NUS protocol additions (zero/empty when not applicable):

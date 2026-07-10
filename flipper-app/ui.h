@@ -61,6 +61,13 @@ typedef enum {
 
 #define CTX_PCT_UNKNOWN 255
 
+typedef enum {
+    HostTypeUnknown = 0,
+    HostTypeClaude,
+    HostTypeCodex,
+    HostTypeCursor,
+} HostType;
+
 typedef void (*UiEventCallback)(UiEventType event, const char* data, void* context);
 
 // View model structs (stored inside each View's model allocation)
@@ -80,6 +87,7 @@ typedef struct {
     uint8_t context_pct;    // 0-100, CTX_PCT_UNKNOWN when unknown
     uint8_t session_pct;    // 0-100 rate-limit pressure, CTX_PCT_UNKNOWN when unknown
     uint8_t compact_level;  // 0=off, 1-3 compaction intensity
+    uint8_t host_type;      // HostType — bridge identity (Claude/Codex/Cursor)
     uint8_t transport_mode; // 0 = USB, 1 = BT (shown in header)
     uint8_t rssi_bars;      // BLE signal bars 0–4 (only used when transport_mode == 1)
 } StatusModel;
@@ -140,6 +148,7 @@ void ui_show_status2(UiState* ui, const char* text, const char* subtext, bool co
 void ui_show_menu(UiState* ui);
 void ui_show_listening(UiState* ui);
 void ui_set_claude_connected(UiState* ui, bool connected);
+void ui_set_host_type(UiState* ui, uint8_t host_type);
 void ui_set_pose(UiState* ui, uint8_t pose);
 void ui_set_usage(UiState* ui, uint8_t context_pct, uint8_t session_pct, uint8_t compact_level, bool update_compact);
 void ui_set_transport_mode(UiState* ui, bool is_bt);

@@ -100,6 +100,9 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
         break;
     case MsgTypeState:
         json_get_bool(d_start, "claude", &msg->claude_connected);
+        if(json_get_string(d_start, "host", msg->host_name, sizeof(msg->host_name))) {
+            msg->has_host = true;
+        }
         break;
     case MsgTypePerm:
         json_get_string(d_start, "tool", msg->text, sizeof(msg->text));

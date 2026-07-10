@@ -38,7 +38,7 @@ class Daemon:
     async def _mark_flipper_session_connected(self, *, play_connect: bool = False) -> None:
         """Tell the Flipper UI that a host session is active."""
         self._cursor_connected = True
-        await self.serial.send(protocol.state_msg(True))
+        await self.serial.send(protocol.state_msg(True, config.HOST_TYPE))
         if play_connect:
             await self.serial.send(
                 protocol.notify_msg("connect", vibro=True, text="Cursor", subtext="Connected")
@@ -213,7 +213,7 @@ class Daemon:
                 config.PROJECT_DIR = project_dir
                 log.info("Updated PROJECT_DIR to %s", project_dir)
             self._cursor_connected = True
-            await self.serial.send(protocol.state_msg(True))
+            await self.serial.send(protocol.state_msg(True, config.HOST_TYPE))
             # Refresh commands for the (possibly new) project
             commands = self._load_commands()
             if commands and self.serial.connected:
@@ -223,7 +223,7 @@ class Daemon:
         elif action == "cursor_disconnect":
             await self._stop_space_repeat()
             self._cursor_connected = False
-            await self.serial.send(protocol.state_msg(False))
+            await self.serial.send(protocol.state_msg(False, config.HOST_TYPE))
             return {"status": "ok"}
 
         elif action == "bridge_enable":

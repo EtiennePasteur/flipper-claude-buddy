@@ -37,8 +37,8 @@ def notify_msg(sound: str, vibro: bool = True, text: str = "", subtext: str = ""
     return encode("notify", d)
 
 
-def state_msg(claude_connected: bool = False) -> bytes:
-    return encode("state", {"claude": claude_connected})
+def state_msg(claude_connected: bool = False, host: str = "claude") -> bytes:
+    return encode("state", {"claude": claude_connected, "host": host})
 
 
 def status_msg(line1: str, line2: str = "") -> bytes:

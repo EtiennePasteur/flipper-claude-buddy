@@ -245,6 +245,19 @@ static uint8_t rssi_to_bars(int rssi) {
     return 0;
 }
 
+static const char* host_type_label(uint8_t host_type) {
+    switch(host_type) {
+    case HostTypeClaude:
+        return "Claude";
+    case HostTypeCodex:
+        return "Codex";
+    case HostTypeCursor:
+        return "Cursor";
+    default:
+        return NULL;
+    }
+}
+
 static bool is_event_pose(uint8_t pose) {
     switch(pose) {
     case PoseListening:
@@ -783,10 +796,23 @@ static void status_draw(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, ox + 8, 8, "Mic");
     }
 
-    // Mute indicator — small 'M' at top-left when sound is off
+    // Host label — top-left (Claude / Codex / Cursor)
+    uint8_t display_host = m->host_type;
+    if(display_host == HostTypeUnknown && desktop && m->connected) {
+        display_host = HostTypeClaude;
+    }
+    const char* host_label = host_type_label(display_host);
+    int header_left = 1;
+    if(host_label && m->connected) {
+        canvas_draw_str(canvas, header_left, 8, host_label);
+        header_left += (int)canvas_string_width(canvas, host_label) + 3;
+    }
+
+    // Mute indicator when sound is off
     if(m->muted) {
         canvas_set_font(canvas, FontKeyboard);
-        canvas_draw_str(canvas, 1, 8, "M");
+        canvas_draw_str(canvas, header_left, 8, "M");
+        canvas_set_font(canvas, FontSecondary);
     }
 
     // Transport mode — only when connected
@@ -1860,6 +1886,7 @@ void ui_show_status(UiState* ui, const char* text, bool connected) {
     if(!connected) {
         m->pose = PoseSleeping;
         m->anim_frame = 0;
+        m->host_type = HostTypeUnknown;
     }
     view_commit_model(ui->status_view, true);
     if(ui->current_view != ViewIdMenu && ui->current_view != ViewIdInfo) {
@@ -1887,6 +1914,7 @@ void ui_show_status2(UiState* ui, const char* text, const char* subtext, bool co
     if(!connected) {
         m->pose = PoseSleeping;
         m->anim_frame = 0;
+        m->host_type = HostTypeUnknown;
     }
     view_commit_model(ui->status_view, true);
     if(ui->current_view != ViewIdMenu && ui->current_view != ViewIdInfo) {
@@ -1935,6 +1963,13 @@ void ui_set_claude_connected(UiState* ui, bool connected) {
     if(!connected) {
         m->rssi_bars = 0; // 清零信号格
     }
+    view_commit_model(ui->status_view, true);
+}
+
+void ui_set_host_type(UiState* ui, uint8_t host_type) {
+    if(!ui) return;
+    StatusModel* m = view_get_model(ui->status_view);
+    m->host_type = host_type;
     view_commit_model(ui->status_view, true);
 }
 
