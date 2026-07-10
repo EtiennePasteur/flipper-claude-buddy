@@ -293,7 +293,8 @@ static int draw_usage_meters(Canvas* canvas, const StatusModel* m) {
     if(!has_ctx && !has_sess) return 0;
 
     canvas_set_font(canvas, FontSecondary);
-    const int y_base = HDR_H + 1;
+    const int meter_pad = 5;
+    const int y_base = HDR_H + meter_pad;
     const int bar_w = 52;
     const int bar_h = 3;
     const int row_step = 7;
@@ -312,29 +313,29 @@ static int draw_usage_meters(Canvas* canvas, const StatusModel* m) {
             snprintf(compact, sizeof(compact), "%u%% lim", m->session_pct);
         }
         canvas_draw_str_aligned(canvas, 126, y_base + 7, AlignRight, AlignBottom, compact);
-        return 8;
+        return meter_pad + 7;
     }
 
     char pct_buf[6];
     int rows = 0;
-    int y = y_base;
+    int lim_y = y_base + row_step;
 
     if(has_ctx) {
-        canvas_draw_str(canvas, label_x, y + 6, "Ctx");
-        draw_usage_bar_row(canvas, bar_x, y + 2, bar_w, bar_h, m->context_pct);
+        int ctx_y = (has_sess ? (lim_y - row_step - 2) : (y_base - 2));
+        canvas_draw_str(canvas, label_x, ctx_y + 6, "Ctx");
+        draw_usage_bar_row(canvas, bar_x, ctx_y + 2, bar_w, bar_h, m->context_pct);
         snprintf(pct_buf, sizeof(pct_buf), "%u%%", m->context_pct);
-        canvas_draw_str(canvas, bar_x + bar_w + 2, y + 6, pct_buf);
-        y += row_step;
+        canvas_draw_str(canvas, bar_x + bar_w + 2, ctx_y + 6, pct_buf);
         rows++;
     }
     if(has_sess) {
-        canvas_draw_str(canvas, label_x, y + 6, "Lim");
-        draw_usage_bar_row(canvas, bar_x, y + 2, bar_w, bar_h, m->session_pct);
+        canvas_draw_str(canvas, label_x, lim_y + 6, "Lim");
+        draw_usage_bar_row(canvas, bar_x, lim_y + 2, bar_w, bar_h, m->session_pct);
         snprintf(pct_buf, sizeof(pct_buf), "%u%%", m->session_pct);
-        canvas_draw_str(canvas, bar_x + bar_w + 2, y + 6, pct_buf);
+        canvas_draw_str(canvas, bar_x + bar_w + 2, lim_y + 6, pct_buf);
         rows++;
     }
-    return rows * row_step + 1;
+    return rows * row_step + meter_pad;
 }
 
 static void draw_pressure_overlay(Canvas* canvas, int cx, int cy, const StatusModel* m, uint8_t frame) {
@@ -840,7 +841,9 @@ static void status_draw(Canvas* canvas, void* model) {
     // ── Content area ──
     const char* main_text = m->connected ? "Ready" : "No connection";
     if(m->text[0] != '\0') main_text = m->text;
-    int char_y = 22 + usage_h;
+    const int area_top = HDR_H + usage_h + 1;
+    const int area_bottom = FTR_Y - 3;
+    int char_y = area_top + (area_bottom - area_top) / 2 - 3;
 
     if(desktop) {
         // Desktop mode has no subtext — wrap the main text across up to 4 lines.
@@ -865,7 +868,27 @@ static void status_draw(Canvas* canvas, void* model) {
     } else {
         bool has_sub = m->subtext[0] != '\0';
         bool show_hint = !has_sub && m->connected && m->text[0] == '\0';
-        int text_y = (has_sub || show_hint) ? 25 + usage_h : 31 + usage_h;
+        const int line_gap = 11;
+        int text_y;
+        int sub_y = 0;
+
+        if(has_sub) {
+            text_y = area_top + 10;
+            sub_y = area_bottom - 4;
+            if(sub_y - text_y < line_gap) {
+                text_y = area_top + (area_bottom - area_top) / 2 - line_gap / 2;
+                sub_y = text_y + line_gap;
+                if(sub_y > area_bottom - 4) {
+                    has_sub = false;
+                    sub_y = 0;
+                    text_y = area_top + (area_bottom - area_top) / 2;
+                }
+            }
+        } else if(show_hint) {
+            text_y = area_top + 8;
+        } else {
+            text_y = area_top + (area_bottom - area_top) / 2;
+        }
 
         // Draw text before the character so it masks marquee overflow on the left.
         canvas_set_font(canvas, FontPrimary);
@@ -881,7 +904,7 @@ static void status_draw(Canvas* canvas, void* model) {
 
         if(has_sub) {
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str_aligned(canvas, 77, 37 + usage_h, AlignCenter, AlignCenter, m->subtext);
+            canvas_draw_str_aligned(canvas, 77, sub_y, AlignCenter, AlignCenter, m->subtext);
         } else if(show_hint) {
             canvas_set_font(canvas, FontSecondary);
             // "Hold [►] for menu" with inline icon
@@ -890,9 +913,10 @@ static void status_draw(Canvas* canvas, void* model) {
             int sw = (int)canvas_string_width(canvas, " "); // space after icon
             int total = hw + 5 + sw + fw; // 5px icon width + space
             int hx = 77 - total / 2;
-            canvas_draw_str(canvas, hx, 39 + usage_h, "Hold ");
-            draw_help_icon(canvas, hx + hw, 39 + usage_h, HelpBtnRight);
-            canvas_draw_str(canvas, hx + hw + 6 + sw, 39 + usage_h, "for menu");
+            int hint_y = area_bottom - 4;
+            canvas_draw_str(canvas, hx, hint_y, "Hold ");
+            draw_help_icon(canvas, hx + hw, hint_y, HelpBtnRight);
+            canvas_draw_str(canvas, hx + hw + 6 + sw, hint_y, "for menu");
         }
     }
 
