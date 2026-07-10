@@ -165,6 +165,21 @@ class TestStatusMsg:
         assert "line2" not in msg["d"]
 
 
+class TestUsageMsg:
+    def test_basic(self):
+        msg = json.loads(protocol.usage_msg(context_pct=82, session_pct=45, compact_level=2))
+        assert msg["t"] == "usage"
+        assert msg["d"]["ctx"] == 82
+        assert msg["d"]["sess"] == 45
+        assert msg["d"]["clvl"] == 2
+
+    def test_clamps_values(self):
+        msg = json.loads(protocol.usage_msg(context_pct=150, session_pct=-5, compact_level=9))
+        assert msg["d"]["ctx"] == 100
+        assert msg["d"]["sess"] == 0
+        assert msg["d"]["clvl"] == 3
+
+
 # ---------------------------------------------------------------------------
 # ping_msg
 # ---------------------------------------------------------------------------
