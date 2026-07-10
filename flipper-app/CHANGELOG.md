@@ -1,3 +1,18 @@
+## v0.6
+
+- Fixed connection/disconnection state handling in Bridge mode.
+- Fixed a memory leak in the Flipper app.
+
+
+## v0.5
+
+- New **Claude Desktop (BLE)** mode: talks directly to the Claude Desktop app over Anthropic's Hardware Buddy protocol. No plugin needed.
+- Linux support for the host bridge plugin — thanks to @DanilaE for the contribution!
+- Info menu relabels: **Claude Code (USB/BLE)** / **Claude Desktop (BLE)**.
+- Help and Transcript pages are now mode-aware.
+- Changed Flipper app category from USB to Bluetooth.
+
+
 ## v0.4
 
 - Info menu (Hold ►): Help, Transcript, Plan/Code Mode, About.

@@ -12,6 +12,21 @@ Every significant event triggers a distinct sound and vibration pattern on your 
 **You control Claude with physical buttons.**
 Interrupt a runaway task, submit a prompt, trigger voice dictation, or open the slash command menu — all without touching the keyboard.
 
+## Two modes
+
+Claude Buddy runs in one of two modes, switchable from the on-device menu (long-press **Right → MENU**, then the top row):
+
+- **Claude Code (USB/BLE)** (default) — talks to Claude Code in the terminal via the companion plugin and Python host bridge. USB or BLE. Full keystroke forwarding: Enter, Esc, voice dictation, slash-command menu, etc.
+- **Claude Desktop (BLE)** — talks directly to the Claude Desktop app over BLE using Anthropic's [Hardware Buddy](https://github.com/anthropics/claude-desktop-buddy) protocol (Nordic UART Service). No plugin, no host bridge. The Flipper shows live status from Claude Desktop (running sessions, token counts, recent transcript) and lets you Allow / Deny permission prompts right from the device.
+
+### Enabling Hardware Buddy mode in Claude Desktop
+
+1. On the Flipper, switch to **Claude Desktop (BLE)** in the info menu.
+2. In the Claude Desktop app: **Help → Troubleshooting → Enable Developer Mode**.
+3. Open **Developer → Open Hardware Buddy** and pick your Flipper from the scan list. macOS will prompt for Bluetooth permission the first time.
+
+Once paired, Claude Desktop auto-reconnects whenever both sides are online.
+
 ## Buttons
 
 | Button | Action |
@@ -40,6 +55,8 @@ Download `claude_buddy.fap` from the [latest release](../../releases/latest) and
 
 ### 2. Install the Claude Code plugin
 
+> **Requires Python 3.10 or higher.** If you're on an older system Python, upgrade first (e.g. via [pyenv](https://github.com/pyenv/pyenv) or [python.org](https://www.python.org/downloads/)), then reinstall the plugin.
+
 ```bash
 claude plugin marketplace add jxw1102/flipper-claude-buddy
 claude plugin install flipper-claude-buddy@flipper-claude-buddy
@@ -60,6 +77,8 @@ Connects over USB (plug-and-play) or Bluetooth LE — whichever is available. US
 **macOS — First-time Bluetooth pairing:** on first BLE connection macOS will pair with the Flipper. Accept the pairing prompt on both sides. If the connection fails after a firmware flash or factory reset, remove the Flipper from System Settings → Bluetooth and let it re-pair.
 
 **macOS — Bluetooth permission:** Terminal (or your terminal app) must have Bluetooth access. Grant it in System Settings → Privacy & Security → Bluetooth.
+
+**macOS — Accessibility permission (required for keystroke forwarding):** Flipper button presses are delivered to your terminal via AppleScript (`osascript`), which needs Accessibility permission. Grant it in System Settings → Privacy & Security → Accessibility and toggle on your terminal app (Terminal, iTerm2, WezTerm, Alacritty, Ghostty, etc.). Without this, the Flipper will see Claude's status (e.g. "thinking...") but pressing OK, LEFT, RIGHT, etc. will do nothing. If your terminal doesn't prompt automatically, add it manually. The bridge log will show `osascript is not allowed to send keystrokes` when this permission is missing. Voice dictation (UP) also depends on this.
 
 **Linux — USB:** Flipper appears as `/dev/ttyACM*`. No additional drivers needed. If you get a permission error, add your user to the `dialout` group:
 ```bash
@@ -87,6 +106,7 @@ sudo usermod -aG bluetooth $USER  # log out and back in to apply
 | Flipper not found over USB (Linux) | Check `ls /dev/ttyACM*` — if empty, try a different USB cable. If the port exists but access is denied, run `sudo usermod -aG dialout $USER` and log out/in. Set `FLIPPER_SERIAL_PORT=/dev/ttyACMX` explicitly if needed. |
 | Flipper not found over BLE | Make sure Bluetooth is on and the app is running on the Flipper |
 | No sound on task complete | Check that the bridge is running: `cat /tmp/claude-flipper-bridge.log` |
+| Buttons do nothing / `osascript is not allowed to send keystrokes` in log (macOS) | Grant your terminal app Accessibility permission in System Settings → Privacy & Security → Accessibility. Terminals like WezTerm, Alacritty, or Ghostty often don't prompt automatically — add them manually. |
 
 ## Support
 

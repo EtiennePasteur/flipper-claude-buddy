@@ -43,3 +43,19 @@ static inline void transport_free(Transport* t) {
 
 Transport* transport_usb_alloc(void);
 Transport* transport_bt_alloc(void);
+Transport* transport_nus_alloc(void);
+
+/* NUS-transport-only helpers.  Callers outside the NUS path must check
+ * that the transport is the NUS flavour before calling (or tolerate a
+ * no-op / false response). */
+bool transport_nus_is_secure(void);
+/* Erase all bonded central keys.  Called on `cmd:unpair`. */
+void transport_nus_forget_bonds(void);
+
+/* Optional: observe BT link state transitions.  Called from the BT
+ * status-changed callback thread — DO NOT touch UI or call transport_send
+ * from here, dispatch a custom event to the GUI thread instead.  Only
+ * meaningful on the Bridge-mode BT transport; no-op on USB and NUS. */
+typedef void (*TransportConnectCallback)(bool connected, void* context);
+void transport_bt_set_connect_callback(
+    Transport* t, TransportConnectCallback cb, void* context);
