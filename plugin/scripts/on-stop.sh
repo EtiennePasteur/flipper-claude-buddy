@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Stop hook: notify Flipper when Claude finishes a turn, with tool usage summary
 
-SOCKET="/tmp/claude-flipper-bridge.sock"
-STATS="/tmp/claude-flipper-turn-stats.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_runtime.sh"
 
 if [ ! -S "$SOCKET" ]; then
     rm -f "$STATS"
@@ -12,7 +12,6 @@ if [ ! -S "$SOCKET" ]; then
 fi
 
 # Skip "Turn complete" if a direct Flipper notify was sent this turn
-SKIP_FLAG="/tmp/claude-flipper-skip-stop.flag"
 if [ -f "$SKIP_FLAG" ]; then
     rm -f "$SKIP_FLAG" "$STATS"
     exit 0

@@ -3,7 +3,8 @@ set -euo pipefail
 
 # TaskCompleted hook: buzz Flipper when a task is marked done.
 
-SOCKET="/tmp/claude-flipper-bridge.sock"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_runtime.sh"
 
 if [ ! -S "$SOCKET" ]; then
     exit 0

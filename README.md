@@ -105,7 +105,7 @@ sudo usermod -aG bluetooth $USER  # log out and back in to apply
 | Flipper not found over USB (macOS) | Make sure no other app (qFlipper, Chrome serial, etc.) is using the port. If it still fails, set `FLIPPER_SERIAL_PORT=/dev/cu.usbmodemXXX` explicitly. |
 | Flipper not found over USB (Linux) | Check `ls /dev/ttyACM*` — if empty, try a different USB cable. If the port exists but access is denied, run `sudo usermod -aG dialout $USER` and log out/in. Set `FLIPPER_SERIAL_PORT=/dev/ttyACMX` explicitly if needed. |
 | Flipper not found over BLE | Make sure Bluetooth is on and the app is running on the Flipper |
-| No sound on task complete | Check that the bridge is running: `cat /tmp/claude-flipper-bridge.log` |
+| No sound on task complete | Check the bridge log: `cat "${TMPDIR:-/tmp}/claude-flipper-bridge.log"` (macOS) or `cat "${XDG_RUNTIME_DIR:-/tmp}/claude-flipper-bridge.log"` (Linux) |
 | Buttons do nothing / `osascript is not allowed to send keystrokes` in log (macOS) | Grant your terminal app Accessibility permission in System Settings → Privacy & Security → Accessibility. Terminals like WezTerm, Alacritty, or Ghostty often don't prompt automatically — add them manually. |
 
 ## Support

@@ -4,9 +4,8 @@ set -euo pipefail
 # SessionStart hook: ensure bridge is running, then notify Flipper.
 # Adapted for Claude Code plugin: uses CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA.
 
-SOCKET="/tmp/claude-flipper-bridge.sock"
-PIDFILE="/tmp/claude-flipper-bridge.pid"
-LOG="/tmp/claude-flipper-bridge.log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_runtime.sh"
 
 # Read hook payload from stdin and extract source for display subtext.
 PAYLOAD=$(cat)
@@ -85,12 +84,12 @@ if [ -S "$SOCKET" ] && [ -f "$PIDFILE" ]; then
     if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null && [ "$INSTALLED_HASH" != "$CURRENT_HASH" ]; then
         echo "[bridge] Bridge code changed; restarting daemon $OLD_PID..." >&2
         kill "$OLD_PID" 2>/dev/null || true
-        rm -f "$SOCKET" "$PIDFILE" "/tmp/claude-flipper-bridge.refcount"
+        rm -f "$SOCKET" "$PIDFILE" "$REFCOUNT_FILE"
         OLD_PID=""
     fi
     if [ -n "$OLD_PID" ] && ! kill -0 "$OLD_PID" 2>/dev/null; then
         echo "[bridge] Cleaning up stale bridge (pid $OLD_PID gone)..." >&2
-        rm -f "$SOCKET" "$PIDFILE" "/tmp/claude-flipper-bridge.refcount"
+        rm -f "$SOCKET" "$PIDFILE" "$REFCOUNT_FILE"
     fi
 elif [ -S "$SOCKET" ] && [ ! -f "$PIDFILE" ]; then
     # Socket exists but no pidfile — check if anything is listening
@@ -132,7 +131,6 @@ fi
 python3 "$PLUGIN_ROOT/scripts/session-target.py" register_target "$SOCKET" >/dev/null 2>&1 || true
 
 # Increment session reference counter
-REFCOUNT_FILE="/tmp/claude-flipper-bridge.refcount"
 COUNT=$(cat "$REFCOUNT_FILE" 2>/dev/null || echo 0)
 echo $((COUNT + 1)) > "$REFCOUNT_FILE"
 

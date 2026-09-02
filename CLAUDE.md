@@ -37,8 +37,9 @@ FLIPPER_LOG_LEVEL=debug            # verbose logs
 
 ### Testing IPC
 ```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
 echo '{"action":"notify","sound":"success","vibro":true,"text":"Test","subtext":""}' \
-  | nc -U /tmp/claude-flipper-bridge.sock
+  | nc -U "${DIR%/}/claude-flipper-bridge.sock"
 ```
 
 ## Architecture
@@ -47,7 +48,7 @@ echo '{"action":"notify","sound":"success","vibro":true,"text":"Test","subtext":
 Flipper Zero (C app)
   ↕ USB CDC serial  OR  BLE serial
 Host Bridge (Python daemon, macOS)
-  ↕ Unix socket  /tmp/claude-flipper-bridge.sock
+  ↕ Unix socket  $RUNTIME_DIR/claude-flipper-bridge.sock
 Claude Code hook scripts (plugin/ or .claude/)
 ```
 
@@ -105,16 +106,39 @@ The Flipper sends `hello` on the first received `ping` (from the GUI thread), no
 | `plugin/host-bridge/bridge/config.py` | All tunables (timeouts, UUIDs, chunk sizes) |
 | `plugin/scripts/` | Hook scripts for each Claude Code lifecycle event |
 
-## Runtime Files (macOS)
-- Socket: `/tmp/claude-flipper-bridge.sock`
-- PID: `/tmp/claude-flipper-bridge.pid`
-- Log: `/tmp/claude-flipper-bridge.log`
-- Session refcount: `/tmp/claude-flipper-bridge.refcount`
-- Turn stats: `/tmp/claude-flipper-turn-stats.json` — tool usage counts written by `on-post-tool-use.py`, read by `on-stop.sh`
-- Skip-stop flag: `/tmp/claude-flipper-skip-stop.flag` — set by hook Bash commands that write directly to the socket, prevents `on-stop.sh` from double-notifying
+## Runtime Files
+
+All runtime files live in a **per-user private directory**, resolved
+identically by `plugin/scripts/_runtime.sh`, `plugin/scripts/_runtime.py` and
+`bridge/config.py` (keep the three in sync):
+
+1. `$FLIPPER_BRIDGE_RUNTIME_DIR` if set (explicit override)
+2. `$XDG_RUNTIME_DIR` if it exists — Linux, `/run/user/<uid>`, mode 700
+3. `$TMPDIR` — macOS, `/var/folders/…/T`, mode 700
+4. `/tmp` — last-resort fallback
+
+They are **not** in the shared `/tmp`: the socket drives permission decisions
+and keystroke targeting, so a world-writable path would let any local process
+squat it and auto-approve tool permissions on the user's behalf.
+
+Within that directory (`$RUNTIME_DIR` below):
+- Socket: `$RUNTIME_DIR/claude-flipper-bridge.sock` — created mode `0600`
+- PID: `$RUNTIME_DIR/claude-flipper-bridge.pid`
+- Log: `$RUNTIME_DIR/claude-flipper-bridge.log`
+- Session refcount: `$RUNTIME_DIR/claude-flipper-bridge.refcount`
+- Turn stats: `$RUNTIME_DIR/claude-flipper-turn-stats.json` — tool usage counts written by `on-post-tool-use.py`, read by `on-stop.sh`
+- Skip-stop flag: `$RUNTIME_DIR/claude-flipper-skip-stop.flag` — set by hook Bash commands that write directly to the socket, prevents `on-stop.sh` from double-notifying
+
+Outside that directory:
 - BT name cache: `$PLUGIN_DATA/bt_name` — auto-detected Bluetooth device name saved after first `hello`; used across sessions to skip re-scanning
 
-To inspect bridge activity: `tail -f /tmp/claude-flipper-bridge.log`
+`$FLIPPER_BRIDGE_SOCKET` still overrides the socket path on its own.
+
+To inspect bridge activity:
+```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+tail -f "${DIR%/}/claude-flipper-bridge.log"
+```
 
 ## Platform Notes
 

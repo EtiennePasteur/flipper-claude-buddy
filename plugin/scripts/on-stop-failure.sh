@@ -3,7 +3,8 @@ set -euo pipefail
 
 # StopFailure hook: notify Flipper when a turn ends with an API error.
 
-SOCKET="/tmp/claude-flipper-bridge.sock"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_runtime.sh"
 
 if [ ! -S "$SOCKET" ]; then
     exit 0

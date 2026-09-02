@@ -4,8 +4,31 @@ import os
 import sys
 from pathlib import Path
 
+def _runtime_dir() -> str:
+    """Per-user private directory for runtime files.
+
+    Mirrors plugin/scripts/_runtime.{sh,py} — keep the three in sync.
+    Using a private dir rather than the shared /tmp prevents another local
+    process from squatting the socket path and answering permission
+    requests on the user's behalf.
+    """
+    explicit = os.environ.get("FLIPPER_BRIDGE_RUNTIME_DIR", "")
+    if explicit:
+        return explicit.rstrip("/")
+    xdg = os.environ.get("XDG_RUNTIME_DIR", "")
+    if xdg and os.path.isdir(xdg):
+        return xdg.rstrip("/")  # Linux: /run/user/<uid>, mode 700
+    tmp = os.environ.get("TMPDIR", "")
+    if tmp:
+        return tmp.rstrip("/")  # macOS: /var/folders/../T, mode 700
+    return "/tmp"
+
+
+RUNTIME_DIR = _runtime_dir()
+
 SOCKET_PATH = os.environ.get(
-    "FLIPPER_BRIDGE_SOCKET", "/tmp/claude-flipper-bridge.sock"
+    "FLIPPER_BRIDGE_SOCKET",
+    os.path.join(RUNTIME_DIR, "claude-flipper-bridge.sock"),
 )
 
 SERIAL_BAUD = 115200

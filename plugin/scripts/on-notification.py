@@ -6,7 +6,8 @@ import os
 import socket
 import sys
 
-SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime import SOCKET_PATH  # noqa: E402
 
 NOTIFY_MAP = {
     "idle_prompt":       ("alert", "Claude", "Waiting for input"),

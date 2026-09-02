@@ -6,8 +6,8 @@ import os
 import socket
 import sys
 
-SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
-STATS_PATH = "/tmp/claude-flipper-turn-stats.json"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime import SOCKET_PATH, STATS_PATH, SKIP_STOP_FLAG  # noqa: E402
 
 # Map tool names (or prefixes) to sound names.
 # Evaluated in order — first match wins.
@@ -74,7 +74,7 @@ def main():
         cmd = hook_input.get("tool_input", {}).get("command", "")
         if SOCKET_PATH in cmd:
             try:
-                open("/tmp/claude-flipper-skip-stop.flag", "w").close()
+                open(SKIP_STOP_FLAG, "w").close()
             except Exception:
                 pass
             sys.exit(0)

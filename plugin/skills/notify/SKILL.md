@@ -8,13 +8,22 @@ allowed-tools: Bash
 
 Send a notification to the connected Flipper Zero via the host bridge daemon.
 
-The bridge listens on a Unix socket at `/tmp/claude-flipper-bridge.sock`.
+The bridge listens on a Unix socket in the **per-user runtime directory**
+(not `/tmp`, so no other local process can impersonate it). Resolve the path
+first — every example below starts with this line:
+
+```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+SOCK="${FLIPPER_BRIDGE_SOCKET:-${DIR%/}/claude-flipper-bridge.sock}"
+```
 
 ## Notify (sound + vibration + two-line text)
 
 ```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+SOCK="${FLIPPER_BRIDGE_SOCKET:-${DIR%/}/claude-flipper-bridge.sock}"
 echo '{"action":"notify","sound":"SOUND","vibro":VIBRO,"text":"TITLE","subtext":"SUBTITLE"}' \
-  | nc -U /tmp/claude-flipper-bridge.sock
+  | nc -U "$SOCK"
 ```
 
 - `SOUND` — one of the sound names below
@@ -44,20 +53,26 @@ echo '{"action":"notify","sound":"SOUND","vibro":VIBRO,"text":"TITLE","subtext":
 
 Task completed:
 ```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+SOCK="${FLIPPER_BRIDGE_SOCKET:-${DIR%/}/claude-flipper-bridge.sock}"
 echo '{"action":"notify","sound":"success","vibro":true,"text":"Done","subtext":"Tests passed"}' \
-  | nc -U /tmp/claude-flipper-bridge.sock
+  | nc -U "$SOCK"
 ```
 
 Error occurred:
 ```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+SOCK="${FLIPPER_BRIDGE_SOCKET:-${DIR%/}/claude-flipper-bridge.sock}"
 echo '{"action":"notify","sound":"error","vibro":true,"text":"Build failed","subtext":""}' \
-  | nc -U /tmp/claude-flipper-bridge.sock
+  | nc -U "$SOCK"
 ```
 
 Silent status update:
 ```bash
+DIR="${FLIPPER_BRIDGE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}}"
+SOCK="${FLIPPER_BRIDGE_SOCKET:-${DIR%/}/claude-flipper-bridge.sock}"
 echo '{"action":"notify","sound":"alert","vibro":false,"text":"Thinking...","subtext":""}' \
-  | nc -U /tmp/claude-flipper-bridge.sock
+  | nc -U "$SOCK"
 ```
 
 ## Rules

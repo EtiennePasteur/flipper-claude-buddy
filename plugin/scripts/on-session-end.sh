@@ -3,9 +3,8 @@
 # SessionEnd hook: notify Flipper of disconnect, then stop the bridge
 # when the last session ends (reference-counted).
 
-SOCKET="/tmp/claude-flipper-bridge.sock"
-PIDFILE="/tmp/claude-flipper-bridge.pid"
-REFCOUNT_FILE="/tmp/claude-flipper-bridge.refcount"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_runtime.sh"
 
 # Read hook payload from stdin and extract the session end reason.
 PAYLOAD=$(cat)

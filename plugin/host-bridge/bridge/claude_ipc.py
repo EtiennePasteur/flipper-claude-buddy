@@ -27,7 +27,9 @@ class ClaudeIPC:
         self._server = await asyncio.start_unix_server(
             self._handle_client, path=config.SOCKET_PATH
         )
-        os.chmod(config.SOCKET_PATH, 0o666)
+        # Owner-only: the socket drives permission decisions and keystroke
+        # targeting, so no other local user may write to it.
+        os.chmod(config.SOCKET_PATH, 0o600)
         log.info("IPC listening on %s", config.SOCKET_PATH)
 
     async def _handle_client(
