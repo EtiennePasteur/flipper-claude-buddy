@@ -1418,7 +1418,12 @@ static bool perm_input(InputEvent* event, void* context) {
 // ── Ask View ─────────────────────────────────────────────────────
 /* AskUserQuestion rendered as a pick-list. The host answers the tool call
  * with the chosen index, so Back is a dismissal (the question reappears in
- * the terminal), never a refusal. */
+ * the terminal), never a refusal.
+ *
+ * Multi-select questions use the same list with a tick box per row: Ok
+ * toggles the row under the cursor and Right sends the whole set. The Send
+ * hint only appears once something is ticked, so Right is never a dead key
+ * and an empty answer can't be sent. */
 
 static void ask_draw(Canvas* canvas, void* model) {
     if(!canvas || !model) return;
@@ -1448,25 +1453,39 @@ static void ask_draw(Canvas* canvas, void* model) {
     if(m->index >= visible) start = m->index - visible + 1;
 
     canvas_set_font(canvas, FontSecondary);
+    // Multi-select indents the labels to make room for the tick boxes.
+    const int text_x = m->multi ? 13 : 5;
     for(int vi = 0; vi < visible && start + vi < m->count; vi++) {
         int i = start + vi;
         int by = list_y + vi * line_h;
-        if(i == m->index) {
+        bool selected = (i == m->index);
+        if(selected) {
             canvas_draw_rbox(canvas, 1, by - 1, 121, line_h + 1, 1);
             canvas_set_color(canvas, ColorWhite);
-            canvas_draw_str(canvas, 5, by + 7, m->options[i]);
-            canvas_set_color(canvas, ColorBlack);
-        } else {
-            canvas_draw_str(canvas, 5, by + 7, m->options[i]);
         }
+        if(m->multi) {
+            if(m->marks & (1u << i)) {
+                canvas_draw_box(canvas, 4, by + 1, 6, 6);
+            } else {
+                canvas_draw_frame(canvas, 4, by + 1, 6, 6);
+            }
+        }
+        canvas_draw_str(canvas, text_x, by + 7, m->options[i]);
+        if(selected) canvas_set_color(canvas, ColorBlack);
     }
     if(m->count > visible) {
         draw_scrollbar(canvas, m->index, m->count, list_y, list_y + visible * line_h);
     }
 
     draw_footer_sep(canvas);
-    hint_ok(canvas, "Pick");
-    hint_back(canvas, "Skip");
+    if(m->multi) {
+        hint_left(canvas, "Skip");
+        hint_ok(canvas, "Mark");
+        if(m->marks) hint_right(canvas, "Send");
+    } else {
+        hint_ok(canvas, "Pick");
+        hint_back(canvas, "Skip");
+    }
 }
 
 static bool ask_input(InputEvent* event, void* context) {
@@ -1487,6 +1506,12 @@ static bool ask_input(InputEvent* event, void* context) {
         return true;
     }
     if(event->key == InputKeyOk) {
+        if(m->multi) {
+            // Tick the row under the cursor; Right is what sends the answer.
+            if(m->count > 0) m->marks ^= (uint8_t)(1u << m->index);
+            view_commit_model(ui->ask_view, true);
+            return true;
+        }
         int index = m->index;
         int count = m->count;
         view_commit_model(ui->ask_view, false);
@@ -1497,7 +1522,20 @@ static bool ask_input(InputEvent* event, void* context) {
         }
         return true;
     }
-    if(event->key == InputKeyBack) {
+    if(event->key == InputKeyRight) {
+        bool multi = m->multi;
+        uint8_t marks = m->marks;
+        view_commit_model(ui->ask_view, false);
+        if(!multi) return false;
+        // No hint is drawn with nothing ticked, so this is a no-op there.
+        if(marks && ui->event_callback) {
+            char marks_str[8];
+            snprintf(marks_str, sizeof(marks_str), "%u", marks);
+            ui->event_callback(UiEventAskSelectMulti, marks_str, ui->event_context);
+        }
+        return true;
+    }
+    if(event->key == InputKeyBack || (event->key == InputKeyLeft && m->multi)) {
         view_commit_model(ui->ask_view, false);
         if(ui->event_callback) ui->event_callback(UiEventAskEsc, NULL, ui->event_context);
         return true;
@@ -1775,7 +1813,12 @@ void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool 
     view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdPerm);
 }
 
-void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited) {
+void ui_show_ask(
+    UiState* ui,
+    const char* header,
+    const char* question,
+    const char* pipe_delimited,
+    bool multi) {
     if(!ui || !pipe_delimited) return;
     AskModel* m = view_get_model(ui->ask_view);
 
@@ -1786,6 +1829,8 @@ void ui_show_ask(UiState* ui, const char* header, const char* question, const ch
 
     m->count = 0;
     m->index = 0;
+    m->multi = multi;
+    m->marks = 0;
     const char* p = pipe_delimited;
     while(*p && m->count < MAX_ASK_OPTIONS) {
         const char* sep = strchr(p, '|');

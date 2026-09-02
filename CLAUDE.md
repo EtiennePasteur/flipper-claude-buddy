@@ -84,10 +84,18 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 **Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`, `ask_resp`
 
 `ask` carries an `AskUserQuestion` call as a pick-list (`hdr`, `q`, pipe-delimited
-`opts`); `ask_resp` answers with the chosen `idx`, or `esc` to hand the question
-back to the terminal. Option labels are display-only — the answer is an index —
-so the bridge ASCII-folds them (`protocol.wire_safe`) to survive the Flipper's
-escape-less JSON parser and its LCD font.
+`opts`, plus `multi` when several options may be picked); `ask_resp` answers with
+the chosen `idx` — or, for a multi-select question, a `sel` bitmask of the ticked
+options — or `esc` to hand the question back to the terminal. Option labels are
+display-only — the answer is an index — so the bridge ASCII-folds them
+(`protocol.wire_safe`) to survive the Flipper's escape-less JSON parser and its
+LCD font. The hook joins a multi-select answer's labels with `", "`, which is how
+the terminal dialog encodes them into the tool's `answers` map.
+
+On the device, a single-select question is answered with OK; a multi-select one
+ticks rows with OK and sends with Right. The Send hint is only drawn once
+something is ticked, so an empty answer can't be sent. Calls carrying several
+questions still fall back to Claude's own dialog.
 
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires.
 

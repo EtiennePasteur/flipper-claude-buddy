@@ -109,6 +109,7 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
         json_get_string(d_start, "q", msg->text, sizeof(msg->text));
         json_get_string(d_start, "hdr", msg->text2, sizeof(msg->text2));
         json_get_string(d_start, "opts", msg->menu_data, sizeof(msg->menu_data));
+        json_get_bool(d_start, "multi", &msg->ask_multi);
         break;
     case MsgTypePing:
         {
@@ -224,5 +225,17 @@ int protocol_build_ask_resp(char* buf, int buf_size, int index, bool esc) {
         buf, buf_size,
         "{\"v\":1,\"t\":\"ask_resp\",\"d\":{\"idx\":%d,\"esc\":%s}}\n",
         index,
+        esc ? "true" : "false");
+}
+
+/* Multi-select answer. The ticked options travel as a bitmask rather than a
+ * list so the host can read them with a plain integer field — MAX_ASK_OPTIONS
+ * is 4, so a single small number always suffices. */
+int protocol_build_ask_resp_multi(char* buf, int buf_size, uint32_t marks, bool esc) {
+    if(!buf || buf_size <= 0) return 0;
+    return snprintf(
+        buf, buf_size,
+        "{\"v\":1,\"t\":\"ask_resp\",\"d\":{\"sel\":%lu,\"esc\":%s}}\n",
+        (unsigned long)marks,
         esc ? "true" : "false");
 }

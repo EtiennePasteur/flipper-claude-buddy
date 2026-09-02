@@ -40,6 +40,7 @@ typedef struct {
     char text2[PROTOCOL_MAX_FIELD_LEN];  // line2 (subtext)
     char menu_data[PROTOCOL_MAX_MSG_LEN]; // pipe-delimited menu items
                                           // (MsgTypeAsk: pipe-delimited options)
+    bool ask_multi;        // MsgTypeAsk: several options may be picked at once
     bool claude_connected; // claude code session state
     bool has_rssi;
     int16_t rssi;
@@ -83,6 +84,7 @@ int protocol_build_down(char* buf, int buf_size);
 int protocol_build_pong(char* buf, int buf_size);
 int protocol_build_perm_resp(char* buf, int buf_size, bool allow, bool always, bool esc);
 int protocol_build_ask_resp(char* buf, int buf_size, int index, bool esc);
+int protocol_build_ask_resp_multi(char* buf, int buf_size, uint32_t marks, bool esc);
 int protocol_build_interrupt(char* buf, int buf_size);
 int protocol_build_backspace(char* buf, int buf_size);
 int protocol_build_yes(char* buf, int buf_size);

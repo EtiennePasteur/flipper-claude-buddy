@@ -472,7 +472,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
     case MsgTypeAsk:
         /* Bridge-only: the Anthropic desktop protocol has no question type. */
         notify_play(app->notifications, SoundPerm, LedStateOff);
-        ui_show_ask(app->ui, msg->text2, msg->text, msg->menu_data);
+        ui_show_ask(app->ui, msg->text2, msg->text, msg->menu_data, msg->ask_multi);
         break;
 
     case MsgTypeState:
@@ -795,12 +795,18 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
     }
 
     case UiEventAskSelect:
+    case UiEventAskSelectMulti:
     case UiEventAskEsc: {
         bool esc = (event == UiEventAskEsc);
-        int index = (!esc && data) ? atoi(data) : -1;
         notify_play(app->notifications, SoundLedOff, LedStateOff);
         app_notify(app, esc ? SoundEsc : SoundSuccess);
-        len = protocol_build_ask_resp(app->tx_buf, sizeof(app->tx_buf), index, esc);
+        if(event == UiEventAskSelectMulti) {
+            uint32_t marks = data ? (uint32_t)strtoul(data, NULL, 10) : 0;
+            len = protocol_build_ask_resp_multi(app->tx_buf, sizeof(app->tx_buf), marks, false);
+        } else {
+            int index = (!esc && data) ? atoi(data) : -1;
+            len = protocol_build_ask_resp(app->tx_buf, sizeof(app->tx_buf), index, esc);
+        }
         transport_send(app->transport, app->tx_buf, len);
         ui_back_to_status(app->ui);
         break;

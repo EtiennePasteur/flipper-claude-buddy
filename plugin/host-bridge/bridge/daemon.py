@@ -164,12 +164,21 @@ class Daemon:
                 await self._send_keystroke("escape")
 
         elif msg_type == "ask_resp":
+            # Single-select answers carry "idx"; multi-select ones a "sel"
+            # bitmask of the ticked options.
             index = data.get("idx", -1)
+            marks = data.get("sel")
             esc = data.get("esc", False)
-            log.info("Flipper ask_resp: idx=%s esc=%s future=%s",
-                     index, esc, self._ask_future is not None)
+            log.info("Flipper ask_resp: idx=%s sel=%s esc=%s future=%s",
+                     index, marks, esc, self._ask_future is not None)
             if self._ask_future and not self._ask_future.done():
-                self._ask_future.set_result({"ask": True} if esc else {"index": index})
+                if esc:
+                    result = {"ask": True}
+                elif isinstance(marks, int):
+                    result = {"indices": [i for i in range(32) if marks & (1 << i)]}
+                else:
+                    result = {"index": index}
+                self._ask_future.set_result(result)
 
         elif msg_type == "pong":
             if not self._menu_sent:
@@ -282,7 +291,9 @@ class Daemon:
             header = str(request.get("header", ""))
             question = str(request.get("question", ""))
             options = [str(o) for o in request.get("options", [])]
-            log.info("Question request: %s (%d options)", header or question, len(options))
+            multi = bool(request.get("multi", False))
+            log.info("Question request: %s (%d options%s)",
+                     header or question, len(options), ", multi" if multi else "")
 
             if not options:
                 return {"status": "error"}
@@ -296,7 +307,7 @@ class Daemon:
                 return {"status": "no_flipper"}
 
             self._ask_future = asyncio.get_running_loop().create_future()
-            await self.serial.send(protocol.ask_msg(header, question, options))
+            await self.serial.send(protocol.ask_msg(header, question, options, multi))
 
             if not self.serial.connected:
                 log.info("Send failed, no Flipper")
@@ -312,6 +323,15 @@ class Daemon:
                 if result.get("ask"):
                     log.info("Question dismissed — deferring to Claude")
                     return {"status": "ask"}
+                if "indices" in result:
+                    indices = [i for i in result["indices"] if 0 <= i < len(options)]
+                    if not indices:
+                        log.warning("Question answer empty or out of range: %s",
+                                    result["indices"])
+                        return {"status": "error"}
+                    log.info("Question answered: %s",
+                             ", ".join(f"[{i}] {options[i]}" for i in indices))
+                    return {"status": "ok", "indices": indices}
                 index = result.get("index", -1)
                 if not isinstance(index, int) or not 0 <= index < len(options):
                     log.warning("Question answer out of range: %s", index)

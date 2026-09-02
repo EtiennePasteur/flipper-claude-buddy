@@ -30,6 +30,7 @@ typedef enum {
     UiEventPermDeny,
     UiEventPermEsc,
     UiEventAskSelect,    // question: option chosen (data = option index as text)
+    UiEventAskSelectMulti, // question: options ticked (data = bitmask as text)
     UiEventAskEsc,       // question: dismissed, host falls back to the terminal
     UiEventBackspace,    // short-press Back: send backspace
     UiEventInterrupt,    // long-press Left: send Ctrl+C interrupt
@@ -96,7 +97,7 @@ typedef struct {
 } PermModel;
 
 /* AskUserQuestion allows up to 4 options; the answer travels back as an
- * index, so these labels are display-only. */
+ * index (or a bitmask when multi-select), so these labels are display-only. */
 #define MAX_ASK_OPTIONS 4
 #define MAX_ASK_OPTION_LEN 27
 
@@ -105,6 +106,8 @@ typedef struct {
     char question[64]; // word-wrapped above the option list
     int index;
     int count;
+    bool multi;        // multi-select: Ok ticks, Right sends `marks`
+    uint8_t marks;     // bitmask of ticked options (multi only)
     char options[MAX_ASK_OPTIONS][MAX_ASK_OPTION_LEN];
 } AskModel;
 
@@ -149,7 +152,7 @@ void ui_set_pose(UiState* ui, uint8_t pose);
 void ui_set_transport_mode(UiState* ui, bool is_bt);
 void ui_update_menu(UiState* ui, const char* pipe_delimited);
 void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool allow_always);
-void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited);
+void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited, bool multi);
 void ui_show_info(UiState* ui);
 void ui_back_to_status(UiState* ui);
 void ui_set_muted(UiState* ui, bool muted);

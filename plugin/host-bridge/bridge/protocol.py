@@ -85,11 +85,18 @@ def wire_safe(text: str, limit: int) -> str:
     return " ".join("".join(kept).split())[:limit]
 
 
-def ask_msg(header: str, question: str, options: list[str]) -> bytes:
-    """Multiple-choice question. Options are answered by index, so the
-    labels on the wire are display-only and may be folded/truncated."""
-    return encode("ask", {
+def ask_msg(header: str, question: str, options: list[str], multi: bool = False) -> bytes:
+    """Multiple-choice question. Options are answered by index (or, when
+    ``multi``, by a bitmask of the ticked ones), so the labels on the wire are
+    display-only and may be folded/truncated.
+
+    Multi-select rows are indented by a tick box, so their labels get a
+    slightly tighter budget to keep them on screen."""
+    d: dict = {
         "hdr": wire_safe(header, 21),
         "q": wire_safe(question, 63),
-        "opts": "|".join(wire_safe(o, 26) for o in options),
-    })
+        "opts": "|".join(wire_safe(o, 24 if multi else 26) for o in options),
+    }
+    if multi:
+        d["multi"] = True
+    return encode("ask", d)
