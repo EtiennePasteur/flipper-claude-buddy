@@ -63,6 +63,7 @@ static MsgType parse_type(const char* type_str) {
     if(strcmp(type_str, "menu") == 0) return MsgTypeMenu;
     if(strcmp(type_str, "state") == 0) return MsgTypeState;
     if(strcmp(type_str, "perm") == 0) return MsgTypePerm;
+    if(strcmp(type_str, "ask") == 0) return MsgTypeAsk;
     return MsgTypeUnknown;
 }
 
@@ -103,6 +104,11 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
     case MsgTypePerm:
         json_get_string(d_start, "tool", msg->text, sizeof(msg->text));
         json_get_string(d_start, "detail", msg->text2, sizeof(msg->text2));
+        break;
+    case MsgTypeAsk:
+        json_get_string(d_start, "q", msg->text, sizeof(msg->text));
+        json_get_string(d_start, "hdr", msg->text2, sizeof(msg->text2));
+        json_get_string(d_start, "opts", msg->menu_data, sizeof(msg->menu_data));
         break;
     case MsgTypePing:
         {
@@ -209,5 +215,14 @@ int protocol_build_perm_resp(char* buf, int buf_size, bool allow, bool always, b
         "{\"v\":1,\"t\":\"perm_resp\",\"d\":{\"allow\":%s,\"always\":%s,\"esc\":%s}}\n",
         allow ? "true" : "false",
         always ? "true" : "false",
+        esc ? "true" : "false");
+}
+
+int protocol_build_ask_resp(char* buf, int buf_size, int index, bool esc) {
+    if(!buf || buf_size <= 0) return 0;
+    return snprintf(
+        buf, buf_size,
+        "{\"v\":1,\"t\":\"ask_resp\",\"d\":{\"idx\":%d,\"esc\":%s}}\n",
+        index,
         esc ? "true" : "false");
 }

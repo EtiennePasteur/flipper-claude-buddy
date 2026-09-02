@@ -1,3 +1,15 @@
+## v0.7
+
+- `AskUserQuestion` now shows its options on the Flipper as a pick-list instead of
+  an Allow/Deny prompt: pick with Up/Down + OK, or press Back to leave the question
+  to the terminal.
+- New `ask` / `ask_resp` protocol messages. Answers travel as an option index, so
+  labels on the wire are display-only and get ASCII-folded for the Flipper's parser
+  and LCD font.
+- Single-select questions with 2-4 options are answered on the device; multi-select
+  and multi-question calls fall back to Claude's own dialog.
+
+
 ## v0.6
 
 - Fixed connection/disconnection state handling in Bridge mode.

@@ -80,8 +80,14 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 {"v": 1, "t": "<type>", "d": {...}}
 ```
 
-**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`
-**Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`
+**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`, `ask`
+**Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`, `ask_resp`
+
+`ask` carries an `AskUserQuestion` call as a pick-list (`hdr`, `q`, pipe-delimited
+`opts`); `ask_resp` answers with the chosen `idx`, or `esc` to hand the question
+back to the terminal. Option labels are display-only — the answer is an index —
+so the bridge ASCII-folds them (`protocol.wire_safe`) to survive the Flipper's
+escape-less JSON parser and its LCD font.
 
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires.
 

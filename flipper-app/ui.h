@@ -9,6 +9,7 @@ typedef enum {
     ViewIdStatus,
     ViewIdMenu,
     ViewIdPerm,
+    ViewIdAsk,
     ViewIdInfo,
 } ViewId;
 
@@ -28,6 +29,8 @@ typedef enum {
     UiEventPermAlways,
     UiEventPermDeny,
     UiEventPermEsc,
+    UiEventAskSelect,    // question: option chosen (data = option index as text)
+    UiEventAskEsc,       // question: dismissed, host falls back to the terminal
     UiEventBackspace,    // short-press Back: send backspace
     UiEventInterrupt,    // long-press Left: send Ctrl+C interrupt
     UiEventToggleMute,   // long-press Down: toggle sound mute
@@ -92,6 +95,19 @@ typedef struct {
                           // desktop wire protocol has no "always" decision)
 } PermModel;
 
+/* AskUserQuestion allows up to 4 options; the answer travels back as an
+ * index, so these labels are display-only. */
+#define MAX_ASK_OPTIONS 4
+#define MAX_ASK_OPTION_LEN 27
+
+typedef struct {
+    char header[22];   // question's short header, shown in the title bar
+    char question[64]; // word-wrapped above the option list
+    int index;
+    int count;
+    char options[MAX_ASK_OPTIONS][MAX_ASK_OPTION_LEN];
+} AskModel;
+
 typedef enum {
     InfoPageMenu,   // top-level: Help / About / Transcript
     InfoPageHelp,
@@ -112,6 +128,7 @@ typedef struct {
     View* status_view;
     View* menu_view;
     View* perm_view;
+    View* ask_view;
     View* info_view;
     FuriTimer* anim_timer;
     UiEventCallback event_callback;
@@ -132,6 +149,7 @@ void ui_set_pose(UiState* ui, uint8_t pose);
 void ui_set_transport_mode(UiState* ui, bool is_bt);
 void ui_update_menu(UiState* ui, const char* pipe_delimited);
 void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool allow_always);
+void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited);
 void ui_show_info(UiState* ui);
 void ui_back_to_status(UiState* ui);
 void ui_set_muted(UiState* ui, bool muted);

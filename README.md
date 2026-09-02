@@ -58,7 +58,7 @@ Download `claude_buddy.fap` from the [latest release](../../releases/latest) and
 > **Requires Python 3.10 or higher.** If you're on an older system Python, upgrade first (e.g. via [pyenv](https://github.com/pyenv/pyenv) or [python.org](https://www.python.org/downloads/)), then reinstall the plugin.
 
 ```bash
-claude plugin marketplace add jxw1102/flipper-claude-buddy
+claude plugin marketplace add EtiennePasteur/flipper-claude-buddy
 claude plugin install flipper-claude-buddy@flipper-claude-buddy
 ```
 
@@ -110,7 +110,7 @@ sudo usermod -aG bluetooth $USER  # log out and back in to apply
 
 ## Support
 
-If you find this useful, consider [buying me a coffee](https://ko-fi.com/jxw1102).
+If you find this useful, consider [buying the original author a coffee](https://ko-fi.com/jxw1102).
 
 ## License
 

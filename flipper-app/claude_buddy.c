@@ -17,6 +17,8 @@
  *   The active mode is shown in the header ("USB" or "BLE").
  */
 
+#include <stdlib.h>
+
 #include <furi.h>
 #include <furi_hal.h>
 #include <furi_hal_power.h>
@@ -467,6 +469,12 @@ static void process_message(App* app, ProtocolMessage* msg) {
         break;
     }
 
+    case MsgTypeAsk:
+        /* Bridge-only: the Anthropic desktop protocol has no question type. */
+        notify_play(app->notifications, SoundPerm, LedStateOff);
+        ui_show_ask(app->ui, msg->text2, msg->text, msg->menu_data);
+        break;
+
     case MsgTypeState:
         ui_set_claude_connected(app->ui, msg->claude_connected);
         break;
@@ -781,6 +789,18 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
             len = protocol_build_perm_resp(
                 app->tx_buf, sizeof(app->tx_buf), allow, always, esc);
         }
+        transport_send(app->transport, app->tx_buf, len);
+        ui_back_to_status(app->ui);
+        break;
+    }
+
+    case UiEventAskSelect:
+    case UiEventAskEsc: {
+        bool esc = (event == UiEventAskEsc);
+        int index = (!esc && data) ? atoi(data) : -1;
+        notify_play(app->notifications, SoundLedOff, LedStateOff);
+        app_notify(app, esc ? SoundEsc : SoundSuccess);
+        len = protocol_build_ask_resp(app->tx_buf, sizeof(app->tx_buf), index, esc);
         transport_send(app->transport, app->tx_buf, len);
         ui_back_to_status(app->ui);
         break;

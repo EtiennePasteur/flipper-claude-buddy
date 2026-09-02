@@ -811,13 +811,16 @@ static int info_menu_step(int from, int delta) {
 
 static const char* about_lines[] = {
     "Claude Buddy",
-    "v0.6",
+    "v0.7",
     "Claude Code companion",
     "by jxw1102",
-    "github.com/jxw1102",
+    "forked by",
+    "Etienne Pasteur",
+    "github.com",
+    "/EtiennePasteur",
     "/flipper-claude-buddy",
 };
-#define ABOUT_LINE_COUNT 6
+#define ABOUT_LINE_COUNT 9
 #define ABOUT_VISIBLE    3
 
 typedef struct {
@@ -1412,6 +1415,97 @@ static bool perm_input(InputEvent* event, void* context) {
     return false;
 }
 
+// ── Ask View ─────────────────────────────────────────────────────
+/* AskUserQuestion rendered as a pick-list. The host answers the tool call
+ * with the chosen index, so Back is a dismissal (the question reappears in
+ * the terminal), never a refusal. */
+
+static void ask_draw(Canvas* canvas, void* model) {
+    if(!canvas || !model) return;
+    AskModel* m = model;
+    canvas_clear(canvas);
+
+    draw_header(canvas, m->header[0] ? m->header : "QUESTION", true);
+
+    // Question text, wrapped over at most two lines above the options.
+    const int line_h = 8;
+    int list_y = HDR_H + 3;
+    if(m->question[0] != '\0') {
+        canvas_set_font(canvas, FontSecondary);
+        char lines[3][32];
+        int nlines = wrap_text(canvas, m->question, 122, lines, 2);
+        for(int i = 0; i < nlines; i++) {
+            canvas_draw_str(canvas, 3, HDR_H + 7 + i * line_h, lines[i]);
+        }
+        list_y = HDR_H + 3 + nlines * line_h;
+    }
+
+    // Options — whatever fits between the question and the footer, scrolled
+    // so the selection stays visible.
+    int visible = (FTR_Y - list_y) / line_h;
+    if(visible < 1) visible = 1;
+    int start = 0;
+    if(m->index >= visible) start = m->index - visible + 1;
+
+    canvas_set_font(canvas, FontSecondary);
+    for(int vi = 0; vi < visible && start + vi < m->count; vi++) {
+        int i = start + vi;
+        int by = list_y + vi * line_h;
+        if(i == m->index) {
+            canvas_draw_rbox(canvas, 1, by - 1, 121, line_h + 1, 1);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str(canvas, 5, by + 7, m->options[i]);
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_str(canvas, 5, by + 7, m->options[i]);
+        }
+    }
+    if(m->count > visible) {
+        draw_scrollbar(canvas, m->index, m->count, list_y, list_y + visible * line_h);
+    }
+
+    draw_footer_sep(canvas);
+    hint_ok(canvas, "Pick");
+    hint_back(canvas, "Skip");
+}
+
+static bool ask_input(InputEvent* event, void* context) {
+    if(!event || !context) return false;
+    UiState* ui = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
+
+    AskModel* m = view_get_model(ui->ask_view);
+
+    if(event->key == InputKeyUp) {
+        if(m->count > 0) m->index = (m->index > 0) ? m->index - 1 : m->count - 1;
+        view_commit_model(ui->ask_view, true);
+        return true;
+    }
+    if(event->key == InputKeyDown) {
+        if(m->count > 0) m->index = (m->index < m->count - 1) ? m->index + 1 : 0;
+        view_commit_model(ui->ask_view, true);
+        return true;
+    }
+    if(event->key == InputKeyOk) {
+        int index = m->index;
+        int count = m->count;
+        view_commit_model(ui->ask_view, false);
+        if(ui->event_callback && count > 0) {
+            char index_str[8];
+            snprintf(index_str, sizeof(index_str), "%d", index);
+            ui->event_callback(UiEventAskSelect, index_str, ui->event_context);
+        }
+        return true;
+    }
+    if(event->key == InputKeyBack) {
+        view_commit_model(ui->ask_view, false);
+        if(ui->event_callback) ui->event_callback(UiEventAskEsc, NULL, ui->event_context);
+        return true;
+    }
+    view_commit_model(ui->ask_view, false);
+    return false;
+}
+
 // ── Public API ───────────────────────────────────────────────────
 
 UiState* ui_alloc(Gui* gui) {
@@ -1455,6 +1549,14 @@ UiState* ui_alloc(Gui* gui) {
     view_set_context(ui->perm_view, ui);
     view_dispatcher_add_view(ui->view_dispatcher, ViewIdPerm, ui->perm_view);
 
+    // Ask view
+    ui->ask_view = view_alloc();
+    view_allocate_model(ui->ask_view, ViewModelTypeLockFree, sizeof(AskModel));
+    view_set_draw_callback(ui->ask_view, ask_draw);
+    view_set_input_callback(ui->ask_view, ask_input);
+    view_set_context(ui->ask_view, ui);
+    view_dispatcher_add_view(ui->view_dispatcher, ViewIdAsk, ui->ask_view);
+
     // Info view
     ui->info_view = view_alloc();
     view_allocate_model(ui->info_view, ViewModelTypeLockFree, sizeof(InfoModel));
@@ -1481,10 +1583,12 @@ void ui_free(UiState* ui) {
     view_dispatcher_remove_view(ui->view_dispatcher, ViewIdStatus);
     view_dispatcher_remove_view(ui->view_dispatcher, ViewIdMenu);
     view_dispatcher_remove_view(ui->view_dispatcher, ViewIdPerm);
+    view_dispatcher_remove_view(ui->view_dispatcher, ViewIdAsk);
     view_dispatcher_remove_view(ui->view_dispatcher, ViewIdInfo);
     view_free(ui->status_view);
     view_free(ui->menu_view);
     view_free(ui->perm_view);
+    view_free(ui->ask_view);
     view_free(ui->info_view);
     view_dispatcher_free(ui->view_dispatcher);
     free(ui);
@@ -1669,6 +1773,43 @@ void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool 
     view_commit_model(ui->perm_view, true);
     ui->current_view = ViewIdPerm;
     view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdPerm);
+}
+
+void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited) {
+    if(!ui || !pipe_delimited) return;
+    AskModel* m = view_get_model(ui->ask_view);
+
+    strncpy(m->header, header ? header : "", sizeof(m->header) - 1);
+    m->header[sizeof(m->header) - 1] = '\0';
+    strncpy(m->question, question ? question : "", sizeof(m->question) - 1);
+    m->question[sizeof(m->question) - 1] = '\0';
+
+    m->count = 0;
+    m->index = 0;
+    const char* p = pipe_delimited;
+    while(*p && m->count < MAX_ASK_OPTIONS) {
+        const char* sep = strchr(p, '|');
+        int len = sep ? (int)(sep - p) : (int)strlen(p);
+        if(len > MAX_ASK_OPTION_LEN - 1) len = MAX_ASK_OPTION_LEN - 1;
+        if(len > 0) {
+            memcpy(m->options[m->count], p, len);
+            m->options[m->count][len] = '\0';
+            m->count++;
+        }
+        if(!sep) break;
+        p = sep + 1;
+    }
+
+    if(m->count == 0) {
+        /* Nothing to pick from — leave the current view alone so the host's
+         * timeout hands the question back to the terminal. */
+        view_commit_model(ui->ask_view, false);
+        return;
+    }
+
+    view_commit_model(ui->ask_view, true);
+    ui->current_view = ViewIdAsk;
+    view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdAsk);
 }
 
 void ui_back_to_status(UiState* ui) {

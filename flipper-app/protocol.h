@@ -14,6 +14,7 @@ typedef enum {
     MsgTypeMenu,
     MsgTypeState,
     MsgTypePerm,
+    MsgTypeAsk,
     // Flipper -> Host
     MsgTypeCmd,
     MsgTypeEnter,
@@ -38,6 +39,7 @@ typedef struct {
     char text[PROTOCOL_MAX_FIELD_LEN];   // line1
     char text2[PROTOCOL_MAX_FIELD_LEN];  // line2 (subtext)
     char menu_data[PROTOCOL_MAX_MSG_LEN]; // pipe-delimited menu items
+                                          // (MsgTypeAsk: pipe-delimited options)
     bool claude_connected; // claude code session state
     bool has_rssi;
     int16_t rssi;
@@ -80,6 +82,7 @@ int protocol_build_space_up(char* buf, int buf_size);
 int protocol_build_down(char* buf, int buf_size);
 int protocol_build_pong(char* buf, int buf_size);
 int protocol_build_perm_resp(char* buf, int buf_size, bool allow, bool always, bool esc);
+int protocol_build_ask_resp(char* buf, int buf_size, int index, bool esc);
 int protocol_build_interrupt(char* buf, int buf_size);
 int protocol_build_backspace(char* buf, int buf_size);
 int protocol_build_yes(char* buf, int buf_size);
