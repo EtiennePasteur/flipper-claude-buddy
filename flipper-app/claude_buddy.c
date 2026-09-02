@@ -475,6 +475,14 @@ static void process_message(App* app, ProtocolMessage* msg) {
         ui_show_ask(app->ui, msg->text2, msg->text, msg->menu_data, msg->ask_multi);
         break;
 
+    case MsgTypeDismiss:
+        /* The host gave up on a prompt it had put on screen. Silent: the user
+         * has already dealt with it elsewhere, so only the LED is reset. */
+        notify_play(app->notifications, SoundLedOff,
+                    app->is_working ? LedStateWorking : LedStateOff);
+        ui_dismiss_prompt(app->ui);
+        break;
+
     case MsgTypeState:
         ui_set_claude_connected(app->ui, msg->claude_connected);
         break;

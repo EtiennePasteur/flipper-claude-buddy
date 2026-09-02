@@ -1863,6 +1863,16 @@ void ui_back_to_status(UiState* ui) {
     view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdStatus);
 }
 
+/* Close a prompt the host has stopped waiting on — the user answered in the
+ * terminal, or it timed out. Only ask/perm are dismissed: a menu or info page
+ * the user opened themselves is theirs to close. */
+void ui_dismiss_prompt(UiState* ui) {
+    if(!ui) return;
+    if(ui->current_view != ViewIdAsk && ui->current_view != ViewIdPerm) return;
+    ui->current_view = ViewIdStatus;
+    view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdStatus);
+}
+
 void ui_set_muted(UiState* ui, bool muted) {
     if(!ui) return;
     StatusModel* m = view_get_model(ui->status_view);

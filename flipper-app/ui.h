@@ -155,6 +155,7 @@ void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool 
 void ui_show_ask(UiState* ui, const char* header, const char* question, const char* pipe_delimited, bool multi);
 void ui_show_info(UiState* ui);
 void ui_back_to_status(UiState* ui);
+void ui_dismiss_prompt(UiState* ui);
 void ui_set_muted(UiState* ui, bool muted);
 void ui_set_rssi(UiState* ui, int rssi);
 void ui_run(UiState* ui);

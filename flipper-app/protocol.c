@@ -64,6 +64,7 @@ static MsgType parse_type(const char* type_str) {
     if(strcmp(type_str, "state") == 0) return MsgTypeState;
     if(strcmp(type_str, "perm") == 0) return MsgTypePerm;
     if(strcmp(type_str, "ask") == 0) return MsgTypeAsk;
+    if(strcmp(type_str, "dismiss") == 0) return MsgTypeDismiss;
     return MsgTypeUnknown;
 }
 

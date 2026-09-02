@@ -12,6 +12,14 @@ TIMEOUT = 60  # seconds to wait for user decision on Flipper
 
 
 def send_to_bridge(request: dict) -> dict:
+    """Send a request and block until the bridge answers.
+
+    The pid rides along so the bridge can tell a live wait from an abandoned
+    one: when the user answers in the terminal instead, Claude Code kills this
+    hook, and the pid going away is the bridge's only signal to take the
+    prompt off the Flipper's screen.
+    """
+    request = {**request, "pid": os.getpid()}
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(TIMEOUT)
     s.connect(SOCKET_PATH)

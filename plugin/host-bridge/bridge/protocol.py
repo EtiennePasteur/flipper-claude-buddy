@@ -67,6 +67,11 @@ def perm_msg(tool: str, detail: str = "") -> bytes:
     return encode("perm", d)
 
 
+def dismiss_msg() -> bytes:
+    """Tell the Flipper to close a prompt the host has stopped waiting on."""
+    return encode("dismiss")
+
+
 def wire_safe(text: str, limit: int) -> str:
     r"""Fold a string down to what the Flipper can parse and render.
 

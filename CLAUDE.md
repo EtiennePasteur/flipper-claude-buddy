@@ -80,7 +80,7 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 {"v": 1, "t": "<type>", "d": {...}}
 ```
 
-**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`, `ask`
+**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`, `ask`, `dismiss`
 **Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`, `ask_resp`
 
 `ask` carries an `AskUserQuestion` call as a pick-list (`hdr`, `q`, pipe-delimited
@@ -96,6 +96,23 @@ On the device, a single-select question is answered with OK; a multi-select one
 ticks rows with OK and sends with Right. The Send hint is only drawn once
 something is ticked, so an empty answer can't be sent. Calls carrying several
 questions still fall back to Claude's own dialog.
+
+`dismiss` takes a `perm` or `ask` prompt back off the screen when the host stops
+waiting on it, leaving any view the user opened themselves (menu, info) alone.
+A prompt shows on the Flipper *and* in the terminal at once, so it has to be
+withdrawn three ways, each with its own signal:
+
+| The user… | Detected by | Note |
+|---|---|---|
+| answers in the terminal | the `notify` that follows | the hook stays alive, blocked on `recv`, until the daemon answers it |
+| cancels (Esc / Ctrl-C) | the hook's pid disappearing | Claude Code kills the hook here, unlike above |
+| does nothing | the 60s timeout | |
+
+The pid rides along in the IPC request because the socket cannot report this:
+the hook calls `shutdown(SHUT_WR)` right after sending, so the daemon sees EOF
+while the hook is still very much alive. Without `dismiss` the prompt lingered
+until some unrelated notify happened to switch the view — and one carrying no
+text never did.
 
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires.
 

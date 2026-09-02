@@ -15,6 +15,7 @@ typedef enum {
     MsgTypeState,
     MsgTypePerm,
     MsgTypeAsk,
+    MsgTypeDismiss,
     // Flipper -> Host
     MsgTypeCmd,
     MsgTypeEnter,
