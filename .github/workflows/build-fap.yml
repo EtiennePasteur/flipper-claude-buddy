@@ -8,6 +8,15 @@ on:
     tags:
       - '*'
 
+env:
+  # Flipper SDK channel to build against: release | rc | dev
+  # This must match the API version of the firmware you run. A FAP built
+  # against a different API shows "App Too Old / App Too New" on launch and
+  # is listed with a generic "?" icon in the Apps menu.
+  #   release -> 1.4.3 (API 87.1)
+  #   dev     -> API 88.x
+  SDK_CHANNEL: dev
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +31,9 @@ jobs:
 
       - name: Install ufbt
         run: pip install ufbt
+
+      - name: Select SDK channel
+        run: ufbt update --channel=${{ env.SDK_CHANNEL }}
 
       - name: Build FAP
         run: cd flipper-app && ufbt build
