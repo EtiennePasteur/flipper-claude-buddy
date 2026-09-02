@@ -1,3 +1,18 @@
+## v0.8
+
+- Multi-select `AskUserQuestion` calls are answered on the Flipper too: Ok ticks
+  the row under the cursor, Right sends the set, Left or Back leaves the question
+  to the terminal. The Send hint only appears once something is ticked, so an
+  empty answer can't be sent. Calls carrying several questions still fall back to
+  Claude's own dialog.
+- Ticked options travel back as a `sel` bitmask; single-select answers keep using
+  `idx`, so the wire stays backward compatible.
+- New `dismiss` message: a permission or question prompt is taken off the screen
+  as soon as the host stops waiting on it — answered in the terminal, cancelled,
+  or timed out. It used to linger there until an unrelated notification happened
+  to carry text and switch the view, and its buttons stayed live in the meantime.
+
+
 ## v0.7
 
 - `AskUserQuestion` now shows its options on the Flipper as a pick-list instead of
